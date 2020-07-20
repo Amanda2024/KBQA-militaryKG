@@ -31,7 +31,8 @@ if __name__ == '__main__':
     while 1:
         question = input('用户:')  # E-2C Hawkeye Group I的长度是什么
         answer = handler.chat_main(question)
-        print('小助手:', answer)
+        print('小助手:')
+        print(answer)
 
 
 

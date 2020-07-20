@@ -46,6 +46,7 @@ class AnswerSearcher:
         # print(pattern)
         # 单实体单属性查询  E-2C Hawkeye Group I的长
         list1 = ['n_aircraft_name', 'n_aircraft_attri']
+        list2 = ['n_aircraft_attri']
         if(set(pattern)==set(list1) and pattern_num_dict['n_aircraft_attri']==1 and pattern_num_dict['n_aircraft_name']==1):
             entity = "".join([k for k, v in final_dict.items() if v == 'n_aircraft_name'])
             attri = [k for k, v in final_dict.items() if v == 'n_aircraft_attri']
@@ -72,7 +73,53 @@ class AnswerSearcher:
                 answer += dict_answer['m.{0}'.format(i)]
                 answer += "      "
 
+        # 多实体单属性查询  E-2C Hawkeye Group I和Tu-142MK Bear F Mod 3以及F/A-18A Hornet的长是多少？
+        elif (set(pattern) == set(list1) and pattern_num_dict['n_aircraft_attri'] == 1 and pattern_num_dict[
+            'n_aircraft_name'] >= 1):
+            entitys = [''.join(k) for k, v in final_dict.items() if v == 'n_aircraft_name']
+            print(entitys)
+            attri = [k for k, v in final_dict.items() if v == 'n_aircraft_attri']
+            fields = [self.parser.aircraft_attri2fields.get(i) for i in attri]
+            sql = ["MATCH (m:DataAircraft) where m.Name = '{0}' return m.{1} LIMIT 1".format(entity, fields[0]) for entity in entitys]
+            print(sql)
+            answers = []
+            for sql_ in sql:
+                ress = self.g.run(sql_).data()
+                answers.append(ress[0]['m.{0}'.format(fields[0])])
 
+            answer = "      ".join(answers)
+
+        #单属性区间问答  查找爬升率大于1500的飞机有哪些？
+        elif (set(pattern) == set(list2) and pattern_num_dict['n_aircraft_attri'] == 1):
+            attri =[k for k, v in final_dict.items() if v == 'n_aircraft_attri']
+            fields = [self.parser.aircraft_attri2fields.get(i) for i in attri]
+            sql = ["MATCH (m:DataAircraft) where (toFloat(m.{0})>1500) return m.Name".format(fields[0])]
+            print(sql)
+            answers = []
+            for sql_ in sql:
+                ress = self.g.run(sql_).data()
+
+            answers = [res['m.Name'] for res in ress]
+            answer = "      ".join(answers)
+
+        #多实体多属性查询  E-2C Hawkeye Group I和Tu-142MK Bear F Mod 3以及F/A-18A Hornet的长宽高是多少？
+        elif (set(pattern) == set(list1) and pattern_num_dict['n_aircraft_attri'] >= 1 and pattern_num_dict[
+            'n_aircraft_name'] >= 1):
+            entitys = [''.join(k) for k, v in final_dict.items() if v == 'n_aircraft_name']
+            print(entitys)
+            attri = [k for k, v in final_dict.items() if v == 'n_aircraft_attri']
+            fields = [self.parser.aircraft_attri2fields.get(i) for i in attri]
+            sql = ["MATCH (m:DataAircraft) where m.Name = '{0}' return m.{1} LIMIT 1".format(entity, field) for entity in entitys for field in fields]
+            print(sql)
+            answers = []
+            ans = []
+            for i,sql_ in enumerate(sql):
+                ress = self.g.run(sql_).data()
+                ans.append(ress[0]['m.{0}'.format(fields[i%len(fields)])])
+                if i%len(fields)==len(fields)-1:
+                    answers.append("      ".join(ans))
+                    ans = []
+            answer='\n'.join(answers)
 
         return answer
 
