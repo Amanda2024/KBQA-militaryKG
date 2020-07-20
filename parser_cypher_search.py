@@ -117,7 +117,7 @@ class AnswerSearcher:
             for i,sql_ in enumerate(sql):
                 ress = self.g.run(sql_).data()
                 ans.append(ress[0]['m.{0}'.format(fields[i%len(fields)])])
-                if i%len(fields)==2:
+                if i%len(fields)==len(fields)-1:
                     answers.append("      ".join(ans))
                     ans = []
             answer='\n'.join(answers)
