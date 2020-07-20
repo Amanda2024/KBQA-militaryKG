@@ -19,7 +19,7 @@ class QuestionParser:
             'AircraftCockpitArmor': [''],
             'AircraftEngineArmor': [''],
             'AircraftFuselageArmor': [''],
-            'ClimbRate': ['攀升率'],
+            'ClimbRate': ['攀升率','爬升率'],
             'Comments': [''],
             '-Cost': [''],
             'Crew': [''],
