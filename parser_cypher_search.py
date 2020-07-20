@@ -18,8 +18,7 @@ class AnswerSearcher:
             # "http://localhost:7474/db/data"  # py2neo 2.0.8写法
             host="127.0.0.1",  # py2neo 3写法
             user="neo4j",
-            #password="Rjq519623"
-            password="1315882755"
+            password="Rjq519623"
         )
         self.num_limit = 30
         self.parser = QuestionParser() # 为了引用这个类中的变量
