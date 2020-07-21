@@ -64,6 +64,7 @@ class QuestionParser:
             '$ne': ['不等于', '不是']}
         self.compares_dict_1to1 = self.attri_dict2fields_dict(self.compares_dict)
 
+
         # 加载领域特征词(@modify)
         self.aircraft_name = [i.strip() for i in open(self.aircraft_name_path, encoding='utf-8') if i.strip()] # 去重前4728，去重后2173
         # self.aircraft_attri = [i.strip() for i in open(self.aircraft_attri_path, encoding='utf-8') if i.strip()] #

@@ -46,7 +46,8 @@ class AnswerSearcher:
         # print(pattern)
         # 单实体单属性查询  E-2C Hawkeye Group I的长
         list1 = ['n_aircraft_name', 'n_attri']
-        list2 = ['n_big_cates', 'n_attri','n_mosts']
+        list2 = ['n_big_cates', 'n_attri', 'n_mosts']
+        list3 = ['n_attri', 'n_compares', 'n_number']
         if(set(pattern)==set(list1) and pattern_num_dict['n_attri']==1 and pattern_num_dict['n_aircraft_name']==1):
             entity = "".join([k for k, v in final_dict.items() if v == 'n_aircraft_name'])
             attri = [k for k, v in final_dict.items() if v == 'n_attri']
@@ -73,7 +74,9 @@ class AnswerSearcher:
                 answer += dict_answer['m.{0}'.format(i)]
                 answer += "     "
 
-        # 属性多区间问答  # 长度大于20小于40的轰炸机
+        # 单属性多区间问答  # 长度大于20 小于40的轰炸机
+        elif (set(list3).issubset(set(pattern)) and pattern_num_dict['n_attri']==1 and pattern_num_dict['n_compares']>1):
+            print('单属性多区间问答')
 
 
 
@@ -89,13 +92,12 @@ class AnswerSearcher:
 
             answer = ""
             if (self.parser.mosts_dict_1to1.get(most) == 1):  # 属性最大值
-                sql = "match (m:{0}) return m.Name, m.{1} order by toFloat(m.{1}) desc limit 1".format(entity_field, attri_field)
-                print(sql)
+                sql = "match (m:{0}) return m.Name, m.{1} order by toFloat(m.{1}) desc limit 1".format(entity_field,
+                                                                                                       attri_field)
             elif (self.parser.mosts_dict_1to1.get(most) == -1):  # 属性最小值
                 sql = "match (m:{0}) return m.Name, m.{1} order by toFloat(m.{1}) asc limit 1".format(entity_field,
                                                                                                        attri_field)
-                print(sql)
-
+            print(sql)
             ress = self.g.run(sql).data()
             for i in ress[0].values():
                 answer += i
