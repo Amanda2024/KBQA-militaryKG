@@ -30,6 +30,8 @@ if __name__ == '__main__':
     print('请等待模型初始化……')
     while 1:
         question = input('用户:')  # E-2C Hawkeye Group I的长度是什么
+        question = handler.parser.convert(question)
+        # print(question)
         answer = handler.chat_main(question)
         print('小助手:', answer)
 

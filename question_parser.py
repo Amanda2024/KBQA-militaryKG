@@ -14,7 +14,7 @@ class QuestionParser:
         # 领域特征词路径(@modify) 或者 KG字段-特征词的词典
         self.aircraft_name_path = os.path.join(cur, 'data/aircraft_name.txt')
         # self.aircraft_attri_path = os.path.join(cur, 'data/aircraft_attri.txt')
-        self.aircraft_attri_dict = {
+        self.attri_dict = {
             'Agility': [''],
             'AircraftCockpitArmor': [''],
             'AircraftEngineArmor': [''],
@@ -42,18 +42,41 @@ class QuestionParser:
             'YearCommissionied': [''],
             'YearDecommissioined': ['']
             }
-
         # KG字段-特征词的词典 转换成 特征词-KG字段词典
         # 即：键对多值 反过来转成==> 键对单值
-        self.aircraft_attri2fields = self.attri_dict2fields_dict(self.aircraft_attri_dict)
+        self.attri2fields = self.attri_dict2fields_dict(self.attri_dict)
+        self.mosts_dict = {
+            1: ['最大', '最远', '最长', '最高', '最久', '最快', '最多', '最强', '最宽'],
+            -1: ['最小', '最短', '最近', '最低', '最矮', '最慢', '最少', '最弱'],
+        }
+        self.mosts_dict_1to1 = self.attri_dict2fields_dict(self.mosts_dict)
+        self.big_cates_dict = { # 指的是含有某些属性的节点集的大类名称(//需要补充)
+            'DataAircraft':['飞机','战斗机','客机','轰炸机'],
+            'DataSensor':['传感器','敏感元件','探测设备']
+        }
+        self.big_cates_dict_1to1 = self.attri_dict2fields_dict(self.big_cates_dict)
+        self.compares_dict = {
+            '>': ['高于', '大于', '长于', '高过', '大过', '长过', '多于', '远于', '远过', '之后', '晚于', '后于'],
+            '<': ['低于', '小于', '短于', '低过', '短过', '少于', '近于', '近过', '未达到', '没达到', '之前', '先于', '早于'],
+            '<=': ['不高于', '不大于', '小于等于', '不长于', '不高过', '不大过', '不长过', '不多于', '不远于', '不远过'],
+            '>=': ['不低于', '不小于', '大于等于', '不短于', '不低过', '不短过', '不少于', '不近于', '不近过', '达到'],
+            '=': ['等于', '差不多'],
+            '<>': ['不等于', '不是']}
+        self.compares_dict_1to1 = self.attri_dict2fields_dict(self.compares_dict)
+
 
         # 加载领域特征词(@modify)
         self.aircraft_name = [i.strip() for i in open(self.aircraft_name_path, encoding='utf-8') if i.strip()] # 去重前4728，去重后2173
         # self.aircraft_attri = [i.strip() for i in open(self.aircraft_attri_path, encoding='utf-8') if i.strip()] #
-        self.aircraft_attri = self.dictvalue2list(self.aircraft_attri_dict)
+        self.attri = self.dictvalue2list(self.attri_dict)
+        self.mosts = self.dictvalue2list(self.mosts_dict)
+        self.big_cates = self.dictvalue2list(self.big_cates_dict)
+        self.compares = self.dictvalue2list(self.compares_dict)
+        self.number = list(map(str,list(range(10000))))  # case? >10000
 
         # 集合特征词并且去重(@modify)
-        self.region_words = set(self.aircraft_name + self.aircraft_attri) # self.aircraft + self.XXX
+        self.region_words = set(self.aircraft_name + self.attri + self.mosts + self.big_cates + self.compares
+                                + self.number) # self.aircraft + self.XXX
 
 
         # 构造领域actree
@@ -62,8 +85,6 @@ class QuestionParser:
         # 构建领域词以及对应类别的词典
         self.wdtype_dict = self.build_wdtype_dict()
 
-        # add jieba
-        # self.add_jieba(self.aircraft_dict, 'n_aircraft')
 
     '''构造词对应的类型''' #(@modify)
     def build_wdtype_dict(self):
@@ -72,8 +93,16 @@ class QuestionParser:
             wd_dict[wd] = []
             if wd in self.aircraft_name:
                 wd_dict[wd].append('n_aircraft_name')
-            if wd in self.aircraft_attri:
-                wd_dict[wd].append('n_aircraft_attri')
+            if wd in self.attri:
+                wd_dict[wd].append('n_attri')
+            if wd in self.mosts:
+                wd_dict[wd].append('n_mosts')
+            if wd in self.big_cates:
+                wd_dict[wd].append('n_big_cates')
+            if wd in self.compares:
+                wd_dict[wd].append('n_compares')
+            if wd in self.number:
+                wd_dict[wd].append('n_number')
             # if ……
         return wd_dict
 
@@ -81,8 +110,11 @@ class QuestionParser:
     def dictvalue2list(self, dict):
         list = []
         for k in dict.keys():
-            list.append(k)
-            list.append(k.lower())  # 添加 小写
+            if(isinstance(k,int)): # add 07.20
+                True
+            else:
+                list.append(k)
+                list.append(k.lower())  # 添加 小写
             for i in dict[k]:
                 list.append(i) if (len(i) != 0) else False
         # print(list)
@@ -107,13 +139,67 @@ class QuestionParser:
     #
     #     return list(set(entity))
 
+    '''以下两个函数是用来执行数字文本标准化的'''
+    def num(self, s):
+        num = 0
+        is_num = True
+        digit_map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
+        danwei = {'十': 10, '百': 100, '千': 1000};
+        i = 0
+        if (s == "零"):
+            return str(0)
+        while (i < len(s)):
+            if (s[i] == "零"):  # 零占位
+                i += 1
+                continue
+            if (s[i] == "万"):  # 万可接在千以内的组合数字后
+                num = num * 10000
+                i += 1
+                continue
+            # 千以内的组合数字
+            # 以数字开头
+            if (s[i] in digit_map.keys()):
+                new_num = digit_map[s[i]]
+                # 数字后接单位
+                if (i + 1 < len(s)):
+                    i += 1
+                    if (s[i] in danwei.keys()):
+                        new_num = new_num * danwei[s[i]]
+                        # 十位后可能接个位数
+                        if (s[i] == "十" and i + 1 < len(s)):
+                            i += 1
+                            if (s[i] in digit_map.keys()):
+                                new_num = new_num + digit_map[s[i]]
+                            else:
+                                i -= 1
+                    # 连续两个数字，非读数形式
+                    else:
+                        is_num = False
+                        break
+                num += new_num
+                i += 1
+            else:
+                is_num = False
+                break
+        if (is_num == False):
+            for digit in digit_map:
+                s = s.replace(digit, str(digit_map[digit]))
+            s = s.replace("零", "0")
+            return s
+        return str(num)
+    def convert(self, s):
+        import re
+        s = re.sub("[零一二三四五六七八九][零一二三四五六七八九十百千万]*", lambda m: self.num(m.group(0)), s)
+        return s
+
+
     '''将实体标记和实体词加入到jieba当中'''
     def add_jieba(self, wds, tag):
         for wd in wds:
             jieba.add_word(wd, tag=tag, freq=300000)
         return
 
-    '''英文 短语识别，使用ahocorasick树即可'''
+    '''英文 短语识别(以下暂时没用到)，使用ahocorasick树即可'''
     def extract_ner(self, question):
         question = re.sub("[?？]+", "问号", question)  # 问号替换掉
         question = re.sub("[\u4E00-\u9FA5]+", "\n", question)  # 中文去掉
@@ -164,6 +250,8 @@ if __name__ == '__main__':
     handler = QuestionParser()
     while 1:
         question = input("用户：").strip()  # E-2C Hawkeye Group I的长度是什么
+        question = handler.convert(question)
+        # print(question)
         handler.qa_main(question)
 
 # 用户：E-2C Hawkeye Group I的长度是什么
