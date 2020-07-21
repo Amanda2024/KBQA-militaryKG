@@ -8,7 +8,7 @@ from collections import defaultdict
 
 '''
 用户：E-2C Hawkeye Group I的长度是什么
-{'n_aircraft_name': ['E-2C Hawkeye Group I'], 'n_aircraft_attri': ['长度']}
+{'n_aircraft_name': ['E-2C Hawkeye Group I'], 'n_attri': ['长度']}
 '''
 
 
@@ -45,11 +45,12 @@ class AnswerSearcher:
         # print(default_dict)
         # print(pattern)
         # 单实体单属性查询  E-2C Hawkeye Group I的长
-        list1 = ['n_aircraft_name', 'n_aircraft_attri']
-        if(set(pattern)==set(list1) and pattern_num_dict['n_aircraft_attri']==1 and pattern_num_dict['n_aircraft_name']==1):
+        list1 = ['n_aircraft_name', 'n_attri']
+        list2 = ['n_big_cates', 'n_attri','n_mosts']
+        if(set(pattern)==set(list1) and pattern_num_dict['n_attri']==1 and pattern_num_dict['n_aircraft_name']==1):
             entity = "".join([k for k, v in final_dict.items() if v == 'n_aircraft_name'])
-            attri = [k for k, v in final_dict.items() if v == 'n_aircraft_attri']
-            field = "".join([self.parser.aircraft_attri2fields.get(i) for i in attri])  # 单属性可以这么用
+            attri = [k for k, v in final_dict.items() if v == 'n_attri']
+            field = "".join([self.parser.attri2fields.get(i) for i in attri])  # 单属性可以这么用
             # print(field)
             sql = "MATCH (m:DataAircraft) where m.Name = '{0}' return m.{1} LIMIT 1".format(entity, field)
             print(sql)
@@ -57,10 +58,10 @@ class AnswerSearcher:
             answer = ress[0]['m.{0}'.format(field)]
 
         # 单实体多属性查询  E-2C Hawkeye Group I的长宽高
-        elif(set(pattern)==set(list1) and pattern_num_dict['n_aircraft_attri']>=1 and pattern_num_dict['n_aircraft_name']==1):
+        elif(set(pattern)==set(list1) and pattern_num_dict['n_attri']>=1 and pattern_num_dict['n_aircraft_name']==1):
             entity = "".join([k for k, v in final_dict.items() if v == 'n_aircraft_name'])
-            attri = [k for k, v in final_dict.items() if v == 'n_aircraft_attri']
-            fields = [self.parser.aircraft_attri2fields.get(i) for i in attri]
+            attri = [k for k, v in final_dict.items() if v == 'n_attri']
+            fields = [self.parser.attri2fields.get(i) for i in attri]
             sql = ["MATCH (m:DataAircraft) where m.Name = '{0}' return m.{1} LIMIT 1".format(entity, i) for i in fields ]
             print(sql)
             dict_answer = {}
@@ -70,9 +71,35 @@ class AnswerSearcher:
             answer = ""
             for i in fields:
                 answer += dict_answer['m.{0}'.format(i)]
-                answer += "      "
+                answer += "     "
+
+        # 属性多区间问答  # 长度大于20小于40的轰炸机
 
 
+
+        # 单实体 属性 最值问答
+        elif (set(pattern) == set(list2) and len(pattern) == len(list2)): # 战斗机中长度最长是哪个
+            entity = "".join([k for k, v in final_dict.items() if v == 'n_big_cates'])
+            # print(entity)
+            entity_field = self.parser.big_cates_dict_1to1.get(entity)
+            print(self.parser.big_cates_dict_1to1)
+            attri = [k for k, v in final_dict.items() if v == 'n_attri']
+            attri_field = "".join([self.parser.attri2fields.get(i) for i in attri])  # 单属性可以这么用
+            most = "".join([k for k, v in final_dict.items() if v == 'n_mosts'])
+
+            answer = ""
+            if (self.parser.mosts_dict_1to1.get(most) == 1):  # 属性最大值
+                sql = "match (m:{0}) return m.Name, m.{1} order by toFloat(m.{1}) desc limit 1".format(entity_field, attri_field)
+                print(sql)
+            elif (self.parser.mosts_dict_1to1.get(most) == -1):  # 属性最小值
+                sql = "match (m:{0}) return m.Name, m.{1} order by toFloat(m.{1}) asc limit 1".format(entity_field,
+                                                                                                       attri_field)
+                print(sql)
+
+            ress = self.g.run(sql).data()
+            for i in ress[0].values():
+                answer += i
+                answer += "     "
 
         return answer
 
